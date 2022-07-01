@@ -15,12 +15,14 @@
           :disabled="!closedTabsExists"
           variant="outlined"
           @click="openLastClosed"
-        >Открыть последнюю закрытую</v-btn>
+        >Открыть последнюю закрытую
+        </v-btn>
         <v-btn
           :disabled="!closedTabsExists"
           variant="outlined"
           @click="openAll"
-        >Открыть все</v-btn>
+        >Открыть все
+        </v-btn>
       </v-col>
 
       <v-col
@@ -43,7 +45,13 @@
             </v-tab>
           </v-tabs>
           <v-card-text>
-            <router-view />
+            <router-view v-slot="{ Component }">
+              <keep-alive>
+                <component
+                  :is="Component"
+                />
+              </keep-alive>
+            </router-view>
           </v-card-text>
         </v-card>
       </v-col>
@@ -52,36 +60,53 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
-import { ITab } from '@/global'
+import { defineComponent, provide, reactive } from 'vue'
+import { getTabByRouteType, ITab, setTabDataLoadedType } from '@/global'
 
 export default defineComponent({
   name: 'HomeView',
+  setup () {
+    const tabs: ITab[] = reactive([
+      {
+        route: 'one',
+        name: 'Tab One',
+        visible: true,
+        needLoad: true
+      },
+      {
+        route: 'two',
+        name: 'Tab Two',
+        visible: true,
+        needLoad: true
+      },
+      {
+        route: 'three',
+        name: 'Tab Three',
+        visible: true,
+        needLoad: true
+      }
+    ])
 
+    const getTabByRoute: getTabByRouteType = (route) => tabs.find((tab: ITab) => tab.route === route)
+    const setTabDataLoaded: setTabDataLoadedType = (route) => {
+      const tab = getTabByRoute(route)
+      if (!tab) {
+        return
+      }
+      tab.needLoad = false
+    }
+
+    provide('getTabByRoute', getTabByRoute)
+    provide('setTabDataLoaded', setTabDataLoaded)
+
+    return {
+      tabs
+    }
+  },
   data () {
     return {
       currentTab: '' as string,
-      closedTabs: [] as string[],
-      tabs: [
-        {
-          route: 'one',
-          name: 'Tab One',
-          visible: true,
-          component: 'tab-one'
-        },
-        {
-          route: 'two',
-          name: 'Tab Two',
-          visible: true,
-          component: 'tab-two'
-        },
-        {
-          route: 'three',
-          name: 'Tab Three',
-          visible: true,
-          component: 'tab-three'
-        }
-      ] as ITab[]
+      closedTabs: [] as string[]
     }
   },
   computed: {
@@ -120,6 +145,7 @@ export default defineComponent({
         return
       }
       tab.visible = false
+      tab.needLoad = true
       this.closedTabs.push(tabId)
       if (tabId !== this.currentTab) {
         return
