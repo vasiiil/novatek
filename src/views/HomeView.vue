@@ -43,15 +43,7 @@
             </v-tab>
           </v-tabs>
           <v-card-text>
-            <v-window v-model="currentTab">
-              <v-window-item
-                v-for="tab in visibleTabs"
-                :key="`tab-component-${tab.route}`"
-                :value="tab.route"
-              >
-                <component :is="tab.component" />
-              </v-window-item>
-            </v-window>
+            <router-view />
           </v-card-text>
         </v-card>
       </v-col>
@@ -62,21 +54,13 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { ITab } from '@/global'
-import TabOne from '@/components/tabs/TabOne.vue'
-import TabTwo from '@/components/tabs/TabTwo.vue'
-import TabThree from '@/components/tabs/TabThree.vue'
 
 export default defineComponent({
   name: 'HomeView',
 
-  components: {
-    TabOne,
-    TabTwo,
-    TabThree
-  },
   data () {
     return {
-      currentTab: 'one' as string,
+      currentTab: '' as string,
       closedTabs: [] as string[],
       tabs: [
         {
@@ -104,8 +88,29 @@ export default defineComponent({
     visibleTabs (): ITab[] {
       return this.tabs.filter(tab => tab.visible)
     },
+    visibleTabsExists (): boolean {
+      return this.visibleTabs.length > 0
+    },
     closedTabsExists (): boolean {
       return this.closedTabs.length > 0
+    }
+  },
+  watch: {
+    $route (to) {
+      if (to.path === '/') {
+        if (this.visibleTabsExists) {
+          this.$router.push(this.visibleTabs[0].route)
+        }
+        return
+      }
+      if (this.visibleTabsExists) {
+        const tab = this.visibleTabs.find((tab: ITab) => `/${tab.route}` === to.path)
+        if (!tab) {
+          this.$router.back()
+        }
+      } else {
+        this.$router.push('/')
+      }
     }
   },
   methods: {
@@ -148,20 +153,6 @@ export default defineComponent({
       this.closedTabs = []
       this.$router.push(this.currentTab)
     }
-  },
-  beforeRouteUpdate  (to, from, next): void {
-    if (to.path === '/') {
-      next()
-    }
-    if (this.visibleTabs.length > 0) {
-      const tab = this.visibleTabs.find((tab: ITab) => `/${tab.route}` === to.path)
-      if (tab) {
-        next()
-      } else {
-        next(this.visibleTabs[0].route)
-      }
-    }
-    next('/')
   }
 })
 </script>
